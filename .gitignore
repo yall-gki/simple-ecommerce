@@ -22,7 +22,7 @@ logs
 Thumbs.db
 
 # Compiled JavaScript files
-*.js
+
 
 # Node.js package lock file
 package-lock.json
