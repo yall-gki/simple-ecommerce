@@ -8,27 +8,73 @@ import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import userRoutes from './routes/userRoutes.js';
-import adRoutes from './routes/adRoutes.js';
+import productrouters from './routes/productRoutes.js';
+import { rateLimit } from "express-rate-limit";
 
-// Load environment variables from .env file
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  limit: 100,
+  standardHeaders: "draft-7", 
+  legacyHeaders: false, 
+});
+
+
+import { verifySignature } from '@chargily/chargily-pay';
+
+const API_SECRET_KEY = 'YOUR_API_SECRET_KEY_HERE';
+
+
+app.post('/webhook', (req, res) => {
+  const signature = req.get('signature') || '';
+  const payload = req.rawBody;
+
+  if (!signature) {
+    console.log('Signature header is missing');
+    res.sendStatus(400);
+    return;
+  }
+
+  try {
+    if (!verifySignature(payload, signature, API_SECRET_KEY)) {
+      console.log('Signature is invalid');
+      res.sendStatus(403);
+      return;
+    }
+  } catch (error) {
+    console.log(
+      'Something happened while trying to process the request to the webhook'
+    );
+    res.sendStatus(403);
+    return;
+  }
+
+  const event = req.body;
+  // You can use the event.type here to implement your own logic
+  console.log(event);
+
+  res.sendStatus(200);
+});
+
+app.use("/api/users", authLimiter);
+
 dotenv.config();
 
-// Connect to MongoDB
+
 connectDB()
-// Initialize Express app
+
 const app = express();
 app.use(cookieParser())
-// Middleware
-app.use(morgan('dev')); // Logging HTTP requests
-app.use(helmet()); // Security headers
-app.use(cors()); // Cross-Origin Resource Sharing
-app.use(bodyParser.urlencoded({ extended: false })); // Parse URL-encoded bodies
-app.use(bodyParser.json()); // Parse JSON bodies
 
+app.use(morgan('dev')); 
+app.use(helmet());
+app.use(cors()); 
+app.use(bodyParser.urlencoded({ extended: false })); 
+app.use(bodyParser.json()); 
+app.use(express.json({{limit :" 10kb"}}))
 
 // Routes
 app.use('/api/users', userRoutes);
-app.use('/api/ads', adRoutes);
+app.use("/api/products", productrouters);
 
 // Start the server
 const PORT = process.env.PORT || 3000;

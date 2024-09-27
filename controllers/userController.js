@@ -49,6 +49,26 @@ const loginUser = async (req, res) => {
     res.status(500).json({ message: 'Error logging in', error: error.message });
   }
 };
+const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error deleting user", error: error.message });
+  }
+};
 
 const logoutUser = (req, res) => {
   // Clear token cookie
